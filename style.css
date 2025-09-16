@@ -1,0 +1,24 @@
+/* Reset */
+html, body { height: 100%; }
+body { margin: 0; background: #1a1d2a; color: #eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
+
+.wrapper { display: grid; place-items: center; height: 100%; }
+
+canvas#game {
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+	width: min(96vw, 1280px);
+	height: calc(min(96vw, 1280px) * (180 / 320));
+	background: #000;
+	box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+	border: 2px solid #2a2f45;
+}
+
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.75); }
+.overlay.hidden { display: none; }
+.overlay .panel { background: #0f1220; border: 1px solid #2a2f45; padding: 20px; border-radius: 8px; max-width: 720px; text-align: center; }
+.overlay h1 { margin-top: 0; font-size: 24px; }
+.overlay button { background: #3f78ff; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.overlay button:hover { filter: brightness(1.1); }
+
+
