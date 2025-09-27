@@ -35,6 +35,10 @@
 		bg: '#1b1b3a', sky: '#7ec0ff', ground: '#6d4c41', brick: '#b85', coin: '#ffdc5e', player: '#e33', enemy: '#5d9', flag: '#fff', text:'#fff', hud:'#fff', lava:'#f33'
 	};
 
+	// Load Mario sprite image
+	const marioSprite = new Image();
+	marioSprite.src = '163-1637524_super-mario-bros-high-res-sprite-by-mario.png';
+
 	// Tiny SFX using WebAudio Oscillators
 	let audioCtx;
 	function ensureAudio() { if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } }
@@ -336,8 +340,22 @@
 		// Player
 		ctx.save();
 		if (state.player.inv > 0 && Math.floor(performance.now()/100)%2===0) ctx.globalAlpha = 0.5; else ctx.globalAlpha = 1;
-		ctx.fillStyle = COLORS.player;
-		ctx.fillRect(Math.round(state.player.x - cam.x), Math.round(state.player.y - cam.y), state.player.w, state.player.h);
+		
+		// Draw Mario sprite if loaded, otherwise fallback to rectangle
+		if (marioSprite.complete && marioSprite.naturalWidth > 0) {
+			// Scale sprite to match player dimensions (12x14)
+			const scaleX = state.player.w / marioSprite.naturalWidth;
+			const scaleY = state.player.h / marioSprite.naturalHeight;
+			const x = Math.round(state.player.x - cam.x);
+			const y = Math.round(state.player.y - cam.y);
+			
+			ctx.drawImage(marioSprite, x, y, state.player.w, state.player.h);
+		} else {
+			// Fallback to original rectangle if sprite not loaded
+			ctx.fillStyle = COLORS.player;
+			ctx.fillRect(Math.round(state.player.x - cam.x), Math.round(state.player.y - cam.y), state.player.w, state.player.h);
+		}
+		
 		ctx.restore();
 
 		// HUD
