@@ -11,9 +11,9 @@
 	const MOVE_FRICTION = 0.85;
 	const MAX_SPEED_X = 3.2;
 
-	const KEY = { left: false, right: false, up: false, down: false, jump: false, pause: false, reset: false };
+	const KEY = { left: false, right: false, up: false, down: false, jump: false, pause: false, reset: false, continue: false };
 	window.addEventListener('keydown', (e) => {
-		if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyZ','KeyX','KeyA','KeyD','KeyW','KeyS','KeyP','KeyR'].includes(e.code)) e.preventDefault();
+		if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyZ','KeyX','KeyA','KeyD','KeyW','KeyS','KeyP','KeyR','Enter'].includes(e.code)) e.preventDefault();
 		if (e.code === 'ArrowLeft' || e.code === 'KeyA') KEY.left = true;
 		if (e.code === 'ArrowRight' || e.code === 'KeyD') KEY.right = true;
 		if (e.code === 'ArrowUp' || e.code === 'KeyW') KEY.up = true;
@@ -21,6 +21,7 @@
 		if (e.code === 'Space' || e.code === 'KeyZ') KEY.jump = true;
 		if (e.code === 'KeyP') KEY.pause = !KEY.pause;
 		if (e.code === 'KeyR') KEY.reset = true;
+		if (e.code === 'Enter') KEY.continue = true;
 	});
 	window.addEventListener('keyup', (e) => {
 		if (e.code === 'ArrowLeft' || e.code === 'KeyA') KEY.left = false;
@@ -29,6 +30,7 @@
 		if (e.code === 'ArrowDown' || e.code === 'KeyS') KEY.down = false;
 		if (e.code === 'Space' || e.code === 'KeyZ') KEY.jump = false;
 		if (e.code === 'KeyR') KEY.reset = false;
+		if (e.code === 'Enter') KEY.continue = false;
 	});
 
 	const COLORS = {
@@ -38,6 +40,10 @@
 	// Load Mario sprite image
 	const marioSprite = new Image();
 	marioSprite.src = '163-1637524_super-mario-bros-high-res-sprite-by-mario.png';
+
+	// Load Goomba sprite image
+	const goombaSprite = new Image();
+	goombaSprite.src = '194-1943501_super-mario-bros-goomba-super-mario-bros-1-4150683722.png';
 
 	// Tiny SFX using WebAudio Oscillators
 	let audioCtx;
@@ -85,12 +91,26 @@
 				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 				[1,1,0,0,0,0,2,0,0,0,0,0,3,0,0,0,0,0,0,0],
 				[1,1,0,0,0,0,2,0,0,0,0,0,0,0,0,4,0,0,0,0],
-				[0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],
-				[0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,4,0,0,2,0,0,0,0,0,0,0,0,0,0,4,0,0],
+				[0,0,0,0,0,0,2,0,0,4,0,0,0,0,0,0,0,0,0,0],
 				[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 				[6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6]
 			]
-		}
+		},
+		{
+			name: 'Goomba Challenge',
+			spawn: { x: 1, y: 6 },
+			tiles: [
+				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5],
+				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,4,0,0,0,4,0,0,0,4,0,0,0,4,0,0,0,0],
+				[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+				[6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6]
+			]
+		},
 	];
 
 	function createState() {
@@ -102,6 +122,7 @@
 			paused: false,
 			gameOver: false,
 			win: false,
+			levelComplete: false,
 			player: { x: 0, y: 0, vx: 0, vy: 0, w: 12, h: 14, onGround: false, facing: 1, coyote: 0, jumpBuffer: 0, inv: 0 },
 			enemies: [],
 			camera: { x: 0, y: 0 }
@@ -126,7 +147,7 @@
 		state.player.y = lvl.spawn.y * TILE;
 		state.player.vx = 0; state.player.vy = 0; state.player.onGround = false; state.player.coyote = 0; state.player.jumpBuffer = 0; state.player.inv = 0;
 		state.camera.x = 0; state.camera.y = 0;
-		state.win = false; state.gameOver = false; state.paused = false;
+		state.win = false; state.gameOver = false; state.paused = false; state.levelComplete = false;
 	}
 
 	loadLevel(0);
@@ -204,7 +225,15 @@
 	function update(dt) {
 		// Allow reset regardless of state
 		if (handleResetKey()) return;
-		if (state.gameOver || state.win) return;
+		
+		// Handle continue key when level is complete
+		if (state.levelComplete && KEY.continue) {
+			KEY.continue = false;
+			continueToNextLevel();
+			return;
+		}
+		
+		if (state.gameOver || state.win || state.levelComplete) return;
 		if (KEY.pause) { state.paused = !state.paused; KEY.pause = false; }
 		if (state.paused) return;
 
@@ -243,7 +272,14 @@
 
 		// Coins and flag
 		collectAt(level, p.x + p.w/2, p.y + p.h/2);
-		if (reachFlag(level, p.x + p.w/2, p.y + p.h/2)) { state.win = true; SFX.win(); }
+		if (reachFlag(level, p.x + p.w/2, p.y + p.h/2)) { 
+			if (state.levelIndex + 1 < LEVELS.length) {
+				state.levelComplete = true; 
+			} else {
+				state.win = true; 
+			}
+			SFX.win(); 
+		}
 
 		// Enemies
 		for (const e of state.enemies) {
@@ -310,6 +346,12 @@
 		}
 	}
 
+	function continueToNextLevel() {
+		if (state.levelIndex + 1 < LEVELS.length) {
+			loadLevel(state.levelIndex + 1);
+		}
+	}
+
 	function draw() {
 		ctx.fillStyle = COLORS.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
 		const level = LEVELS[state.levelIndex];
@@ -334,7 +376,17 @@
 		// Enemies
 		for (const e of state.enemies) {
 			if (!e.alive) continue;
-			ctx.fillStyle = COLORS.enemy; ctx.fillRect(Math.round(e.x - cam.x), Math.round(e.y - cam.y), e.w, e.h);
+			
+			// Draw Goomba sprite if loaded, otherwise fallback to rectangle
+			if (goombaSprite.complete && goombaSprite.naturalWidth > 0) {
+				const x = Math.round(e.x - cam.x);
+				const y = Math.round(e.y - cam.y);
+				ctx.drawImage(goombaSprite, x, y, e.w, e.h);
+			} else {
+				// Fallback to original rectangle if sprite not loaded
+				ctx.fillStyle = COLORS.enemy; 
+				ctx.fillRect(Math.round(e.x - cam.x), Math.round(e.y - cam.y), e.w, e.h);
+			}
 		}
 
 		// Player
@@ -373,6 +425,13 @@
 			ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0,0,canvas.width,canvas.height);
 			ctx.fillStyle = COLORS.text; ctx.font = '16px monospace'; ctx.textAlign = 'center';
 			ctx.fillText('Game Over - Press R', canvas.width/2, canvas.height/2);
+		}
+		if (state.levelComplete) {
+			ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+			ctx.fillStyle = COLORS.text; ctx.font = '16px monospace'; ctx.textAlign = 'center';
+			ctx.fillText('Level Complete!', canvas.width/2, canvas.height/2 - 10);
+			ctx.font = '12px monospace';
+			ctx.fillText('Press ENTER to continue', canvas.width/2, canvas.height/2 + 10);
 		}
 		if (state.win) {
 			ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0,0,canvas.width,canvas.height);
