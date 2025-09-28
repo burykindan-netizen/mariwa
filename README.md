@@ -23,8 +23,9 @@ Simple 8-bit style HTML5 canvas platformer with Mario-like movement, enemies, co
 
 ## Editing Levels
 - See `LEVELS` in `main.js`. Tiles:
-  - 0 empty, 1 ground, 2 brick, 3 coin, 4 enemy spawn, 5 flag, 6 lava
+  - 0 empty, 1 ground, 2 brick, 3 coin, 4 enemy spawn, 5 flag, 6 lava, 7 water
 - `spawn` sets the player starting tile.
+- Water tiles (7) provide a jump boost when jumped from!
 
 ## Notes
 - This is a learning/demo project, not affiliated with Nintendo.
